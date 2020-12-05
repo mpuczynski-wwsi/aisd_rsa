@@ -1,6 +1,35 @@
 use rand::prelude::*;
 use primes::{Sieve, PrimeSet};
+use std::io::{self,Write};
 
+
+/// Tworzenie kluczy RSA
+/// 1) Znajdź dwie duże liczby pierwsze (mające np. po 128 bitów). 
+/// Oznacz je jako p i q. Istnieją specjalne algorytmy generujące duże liczby pierwsze, 
+/// które wykorzystują np. test Millera-Rabina.
+///
+/// 2)
+/// Oblicz:
+/// Ø = (p - 1) × (q - 1)
+/// oraz
+/// n = p × q
+///
+/// Liczby pierwsze p i q usuń, aby nie wpadły w niepowołane ręce. 
+/// phi  to tzw. funkcja Eulera, n jest modułem.
+///
+/// 3) Wykorzystując odpowiednio algorytm Euklidesa znajdź liczbę e, która jest 
+/// względnie pierwsza z wyliczoną wartością funkcji Eulera Ø (tzn. NWD(e, Ø) = 1) 
+/// Liczba ta powinna również spełniać nierówność 1 < e < n . 
+/// Nie musi ona być pierwsza lecz nieparzysta.
+/// 4) Oblicz liczbę odwrotną modulo phi  do liczby e, czyli spełniającą równanie 
+///
+/// d × e  mod Ø = 1. Można to zrobić przy pomocy rozszerzonego algorytmu Euklidesa, 
+/// który umieściliśmy w naszym artykule.
+///
+/// 5) Klucz publiczny jest parą liczb (e, n), gdzie e nazywa się publicznym wykładnikiem. 
+/// Możesz go przekazywać wszystkim zainteresowanym.
+///
+/// 6) Klucz tajny to (d, n), gdzie d nazywa się prywatnym wykładnikiem. Klucz ten należy przechowywać pod ścisłym nadzorem. 
 
 #[derive(Debug)]
 struct RSA {
@@ -77,7 +106,6 @@ fn klucze_rsa_random() -> RSA{
         // q = LICZBY_PIERWSZE[rng.gen_range(0, N)];
         if p!=q { break; }
     }
-    println!("{} {}", p,q);
 
     let phi:i128 = (p - 1) * (q - 1);
     let n:i128 = p*q;
@@ -111,35 +139,64 @@ fn klucze_rsa(p:i128,q:i128) -> RSA{
     }
 }
 
+fn get_input() -> String {
+    let mut buffer = String::new();
+    std::io::stdin().read_line(&mut buffer).expect("Failed");
+    buffer
+}
+
 
 fn main() {
 
+    print!("Wprowadz liczbe do zaszyfrowania: ");
+    io::stdout().flush().unwrap();
+
+    let t = get_input().trim().parse::<i32>().unwrap();
+    print!("\n\n");
 
 
-    let p = 13;
-    let q= 11;
+    let k:RSA = klucze_rsa_random();
+    println!("{:?}", k);
 
-    let k1:RSA = klucze_rsa(p,q);
-    let k2:RSA = klucze_rsa_random();
-    println!("{:?}", k1);
-    println!("{:?}", k2);
+    print!("\n\n");
 
-    let t = 123;
+
     // szyfrowanie
-    let ciph1 = potega_modulo(t, k1.e, k1.n);
-    println!("{:?}", ciph1);
-    let ciph2 = potega_modulo(t, k2.e, k2.n);
-    println!("{:?}", ciph2);
-
-
-
-
-
+    let ciph = potega_modulo(t as i128, k.e, k.n);
+    println!("ZASZYFROWANA: {:?}", ciph);
 
     // deszyfrowanie
-    let deciph1 = potega_modulo(ciph1, k1.d, k1.n);
-    println!("{:?}", deciph1);
-    let deciph2 = potega_modulo(ciph2, k2.d, k2.n);
-    println!("{:?}", deciph2);
+    let deciph = potega_modulo(ciph, k.d, k.n);
+    println!("ODSZYFROWANA: {:?}", deciph);
+
+}
+
+#[cfg(test)]
+mod tests{
+    use super::*;
+
+    #[test]
+    fn szyfrowanie_own_p_i_q() {
+        let t = 123;
+        let p = 13;
+        let q= 11;
+    
+        let k:RSA = klucze_rsa(p,q);
+        let ciph = potega_modulo(t, k.e, k.n);
+
+        assert_eq!(ciph, 7)
+    }
+
+    #[test]
+    fn deszyfrowanie_own_p_i_q() {
+        let p = 13;
+        let q= 11;
+        let ciph = 7;
+    
+        let k:RSA = klucze_rsa(p,q);
+        let deciph = potega_modulo(ciph, k.d, k.n);
+
+        assert_eq!(deciph, 123)
+    }
 
 }
